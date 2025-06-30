@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/entradaController');
+const verifyToken = require('../middlewares/verifyToken');
+const authorizeRoles = require('../middlewares/checkRole');
 
 // Ruta base: /api/entradas
-router.get('/', controller.getAll);
-router.get('/tipos', controller.tiposEntrada);
-router.get('/reporte', controller.reportePorParticipante);
-router.get('/:id', controller.getById);
-router.post('/', controller.create);
-router.put('/:id', controller.update);
-router.delete('/:id', controller.remove);
+router.get('/', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.getAll);
+router.get('/tipos', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.tiposEntrada);
+router.get('/reporte', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.reportePorParticipante);
+router.get('/:id', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.getById);
+router.post('/crear', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.create);
+router.put('/:id', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.update);
+router.delete('/:id', verifyToken, authorizeRoles('Administrador', 'Organizador', 'Host'),controller.remove);
 
 module.exports = router;
