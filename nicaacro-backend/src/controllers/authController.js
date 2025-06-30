@@ -1,14 +1,14 @@
 const sql = require("mssql");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/jwt");
-const { getConection } = require("../config/db");
+const { getConnection } = require("../config/db");
 
 //login a la app
 const login = async (req, res) => {
-  const { nombre_usuario, contraseña } = req.body;
+  const { nombre_usuario, password } = req.body;
   //conexion a partir de una sp
   try {
-    const pool = await getConection();
+    const pool = await getConnection();
     const result = await pool
       .request()
       .input("nombre_usuario", sql.VarChar, nombre_usuario)
@@ -16,8 +16,9 @@ const login = async (req, res) => {
 
     const user = result.recordset[0];
     if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
+    console.log('Resultado del login:', user);
 
-    const validPass = await bcrypt.compare(contraseña, user.password_hash);
+    const validPass = await bcrypt.compare(password, user.password_hash);
     if (!validPass) return res.status(401).json({ msg: "Contraseña incorrecta" });
 
     const token = generateToken({
