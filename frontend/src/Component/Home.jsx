@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { UserContext } from '../Context/UserContext';
-import { Link } from 'react-router-dom';
-import Navbar from './Navbar'; // <-- IMPORTANTE
+import { Link, useNavigate } from 'react-router-dom';
+import Navbar from './Navbar';
 import {
   FaUserCheck,
   FaUsers,
@@ -12,23 +12,47 @@ import {
 } from 'react-icons/fa';
 
 const Home = () => {
-  const { userRole } = useContext(UserContext);
+  const { userRole, setUserRole } = useContext(UserContext);
+  const navigate = useNavigate();
 
-  const opcionesGenerales = [
-    { rol: ['admin', 'organizador', 'host'], path: '/checkin', icon: <FaUserCheck />, label: 'Registro de entrada/salida' },
-    { rol: ['admin', 'organizador'], path: '/staff', icon: <FaUsers />, label: 'Personal' },
-    { rol: ['admin', 'organizador'], path: '/participants', icon: <FaTicketAlt />, label: 'Participantes' },
-    { rol: ['admin', 'organizador'], path: '/entries', icon: <FaClipboardList />, label: 'Entradas y alojamiento' },
-    { rol: ['admin'], path: '/staff-management', icon: <FaUserCog />, label: 'Administrador de personal' },
-    { rol: ['admin'], path: '/participant-management', icon: <FaUserCog />, label: 'Administrador de participantes' },
-    { rol: ['admin'], path: '/reports', icon: <FaChartBar />, label: 'Informes' }
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+
+      // Si no hay rol en contexto, lo asignamos desde el token
+      if (!userRole) {
+        setUserRole(payload.rol);
+      }
+    } catch (error) {
+      console.error('Token inválido', error);
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  }, [userRole, setUserRole, navigate]);
+
+const opcionesGenerales = [
+  { rol: ['Administrador', 'Organizador', 'Host'], path: '/checkin', icon: <FaUserCheck />, label: 'Registro de entrada/salida' },
+  { rol: ['Administrador', 'Organizador'], path: '/staff', icon: <FaUsers />, label: 'Personal' },
+  { rol: ['Administrador', 'Organizador'], path: '/participants', icon: <FaTicketAlt />, label: 'Participantes' },
+  { rol: ['Administrador', 'Organizador'], path: '/entries', icon: <FaClipboardList />, label: 'Entradas y alojamiento' },
+  { rol: ['Administrador'], path: '/staff-management', icon: <FaUserCog />, label: 'Administrador de personal' },
+  { rol: ['Administrador'], path: '/participant-management', icon: <FaUserCog />, label: 'Administrador de participantes' },
+  { rol: ['Administrador'], path: '/reports', icon: <FaChartBar />, label: 'Informes' }
+];
+
 
   const opcionesFiltradas = opcionesGenerales.filter(op => op.rol.includes(userRole));
 
   return (
     <>
-      <Navbar /> {/* <-- Aquí se incluye la barra de navegación */}
+      <Navbar />
       <div className="container mt-5 pt-5 text-center">
         <h2 className="mb-4">Bienvenido a NicaAcro</h2>
         <p className="mb-5">Selecciona una opción del menú para continuar.</p>

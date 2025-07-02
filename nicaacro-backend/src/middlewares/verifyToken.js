@@ -1,18 +1,16 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers["authorization"];
-  //si no hay token entonces advertir
-  if (!token) return res.status(403).json({ msg: "Token requerido" });
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+  if (!token) return res.status(401).json({ message: 'Token no proporcionado' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Token inválido' });
+    req.user = user;
     next();
-  } catch (err) {
-    //si está vacío o algun otro error mostrar que es invalido
-    res.status(401).json({ msg: "Token inválido" });
-  }
+  });
 };
 
 module.exports = verifyToken;

@@ -1,72 +1,178 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import Navbar from './Navbar';
-//Probando lo de las peticiones a la API
-const API = process.env.REACT_APP_API_URL;
+import { Modal, Button, Form } from 'react-bootstrap';
 
-fetch(`${API}/auth/login`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    nombre_usuario: 'admin',
-    password: 'admin123'
-  })
-})
-  .then(res => res.json())
-  .then(data => {
-    console.log(data);
-    localStorage.setItem('token', data.token); // guarda el token
+const API_URL = process.env.REACT_APP_API_URL;
+
+const StaffAdmin = () => {
+  const [staffList, setStaffList] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [formulario, setFormulario] = useState({
+    nombre: '',
+    correo: '',
+    telefono: '',
+    rol_id: ''
   });
-//Fin de probando
-const AdminStaff = () => {
-  const [staffData, setStaffData] = useState([
-    { nombre: 'Carlos Rivas', rol: 'Coordinador', correo: 'carlos@nicaacro.com' },
-    { nombre: 'Elena Ruiz', rol: 'Soporte', correo: 'elena@nicaacro.com' }
-  ]);
+
+  const token = localStorage.getItem('token');
+  const headers = { headers: { Authorization: `Bearer ${token}` } };
+
+  useEffect(() => {
+    obtenerStaff();
+    obtenerRoles();
+  }, []);
+
+  const obtenerStaff = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/staff`, headers);
+      setStaffList(response.data);
+    } catch (error) {
+      console.error('Error al obtener staff:', error);
+    }
+  };
+
+  const obtenerRoles = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/catalogos/rol`, headers);
+      setRoles(res.data);
+    } catch (error) {
+      console.error('Error al obtener roles:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormulario({ ...formulario, [e.target.name]: e.target.value });
+  };
+
+  const abrirModal = (staff = null) => {
+    setEditando(staff);
+    if (staff) {
+      setFormulario({
+        nombre: staff.nombre,
+        correo: staff.correo,
+        telefono: staff.telefono,
+        rol_id: staff.rol_id
+      });
+    } else {
+      setFormulario({
+        nombre: '',
+        correo: '',
+        telefono: '',
+        rol_id: ''
+      });
+    }
+    setShowModal(true);
+  };
+
+  const guardarStaff = async () => {
+    try {
+      if (editando) {
+        await axios.put(`${API_URL}/staff/${editando.id_staff}`, formulario, headers);
+      } else {
+        await axios.post(`${API_URL}/staff`, formulario, headers);
+      }
+      setShowModal(false);
+      obtenerStaff();
+    } catch (error) {
+      console.error('Error al guardar staff:', error);
+    }
+  };
+
+  const eliminarStaff = async (id) => {
+    if (window.confirm('¿Deseas eliminar este miembro del staff?')) {
+      try {
+        await axios.delete(`${API_URL}/staff/${id}`, headers);
+        obtenerStaff();
+      } catch (error) {
+        console.error('Error al eliminar staff:', error);
+      }
+    }
+  };
 
   return (
     <>
       <Navbar />
-      <div className="container mt-5 pt-5" style={{ backgroundColor: '#FAF3ED', minHeight: '100vh' }}>
-        <h2 className="mb-4">Administrador de Staff</h2>
+      <div className="container mt-5 pt-5">
+        <h2>Gestión de Staff</h2>
+        <Button className="mb-3" variant="success" onClick={() => abrirModal()}>
+          Agregar Staff
+        </Button>
         <div className="table-responsive">
           <table className="table table-bordered table-striped">
-            <thead style={{ backgroundColor: '#F5E9DA' }}>
+            <thead>
               <tr>
                 <th>Nombre</th>
-                <th>Rol</th>
                 <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {staffData.map((staff, index) => (
-                <tr key={index}>
-                  <td>{staff.nombre}</td>
-                  <td>{staff.rol}</td>
-                  <td>{staff.correo}</td>
+              {staffList.map((s) => (
+                <tr key={s.id_staff}>
+                  <td>{s.nombre}</td>
+                  <td>{s.correo}</td>
+                  <td>{s.telefono}</td>
+                  <td>{s.nombre_rol}</td>
                   <td>
-                    <button className="btn btn-sm btn-success me-2">
-                      <i className="bi bi-pencil-square"></i> Editar
-                    </button>
-                    <button className="btn btn-sm btn-danger">
-                      <i className="bi bi-trash"></i> Eliminar
-                    </button>
+                    <Button size="sm" variant="primary" onClick={() => abrirModal(s)}>Editar</Button>{' '}
+                    <Button size="sm" variant="danger" onClick={() => eliminarStaff(s.id_staff)}>Eliminar</Button>
                   </td>
                 </tr>
               ))}
-              {staffData.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="text-center">No hay registros de staff.</td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+
+        {/* Modal para crear/editar staff */}
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>{editando ? 'Editar Staff' : 'Nuevo Staff'}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Nombre</Form.Label>
+                <Form.Control name="nombre" value={formulario.nombre} onChange={handleInputChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Correo</Form.Label>
+                <Form.Control type="email" name="correo" value={formulario.correo} onChange={handleInputChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Teléfono</Form.Label>
+                <Form.Control name="telefono" value={formulario.telefono} onChange={handleInputChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Rol</Form.Label>
+                <Form.Select name="rol_id" value={formulario.rol_id} onChange={handleInputChange} required>
+                  <option value="">Seleccione un rol</option>
+                  {roles.map((r) => (
+                    <option key={r.id_rol} value={r.id_rol}>
+                      {r.nombre_rol}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={guardarStaff}>
+              Guardar
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     </>
   );
 };
 
-export default AdminStaff;
+export default StaffAdmin;
+

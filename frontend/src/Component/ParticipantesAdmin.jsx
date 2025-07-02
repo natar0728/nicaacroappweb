@@ -1,135 +1,200 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import Navbar from './Navbar';
+import { Modal, Button, Form } from 'react-bootstrap';
+
+const API_URL = process.env.REACT_APP_API_URL;
 
 const ParticipantesAdmin = () => {
   const [participantes, setParticipantes] = useState([]);
-  const [nuevoParticipante, setNuevoParticipante] = useState({
+  const [preferencias, setPreferencias] = useState([]);
+  const [alojamientos, setAlojamientos] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editando, setEditando] = useState(null);
+  const [formulario, setFormulario] = useState({
     nombre: '',
     correo: '',
     telefono: '',
-    edad: ''
+    preferencia_id: '',
+    alojamiento_id: ''
   });
 
-  const handleInputChange = (e) => {
-    setNuevoParticipante({
-      ...nuevoParticipante,
-      [e.target.name]: e.target.value
-    });
+  const token = localStorage.getItem('token');
+
+  const headers = {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   };
 
-  const agregarParticipante = () => {
-    setParticipantes([...participantes, nuevoParticipante]);
-    setNuevoParticipante({ nombre: '', correo: '', telefono: '', edad: '' });
-    const modal = window.bootstrap.Modal.getInstance(document.getElementById('agregarParticipanteModal'));
-    modal.hide();
+  useEffect(() => {
+    obtenerParticipantes();
+    obtenerCatalogos();
+  }, []);
+
+  const obtenerParticipantes = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/participantes`, headers);
+      setParticipantes(response.data);
+    } catch (error) {
+      console.error('Error al obtener participantes:', error);
+    }
+  };
+
+  const obtenerCatalogos = async () => {
+    try {
+      const [prefRes, alojRes] = await Promise.all([
+        axios.get(`${API_URL}/catalogos/preferencia`, headers),
+        axios.get(`${API_URL}/catalogos/alojamiento`, headers)
+      ]);
+      setPreferencias(prefRes.data);
+      setAlojamientos(alojRes.data);
+    } catch (error) {
+      console.error('Error al obtener catálogos:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormulario({ ...formulario, [e.target.name]: e.target.value });
+  };
+
+  const abrirModal = (participante = null) => {
+    setEditando(participante);
+    if (participante) {
+      setFormulario({
+        nombre: participante.nombre,
+        correo: participante.correo,
+        telefono: participante.telefono,
+        preferencia_id: participante.preferencia_id,
+        alojamiento_id: participante.alojamiento_id
+      });
+    } else {
+      setFormulario({
+        nombre: '',
+        correo: '',
+        telefono: '',
+        preferencia_id: '',
+        alojamiento_id: ''
+      });
+    }
+    setShowModal(true);
+  };
+
+  const guardarParticipante = async () => {
+    try {
+      if (editando) {
+        await axios.put(`${API_URL}/participantes/${editando.id_participante}`, formulario, headers);
+      } else {
+        await axios.post(`${API_URL}/participantes`, formulario, headers);
+      }
+      setShowModal(false);
+      obtenerParticipantes();
+    } catch (error) {
+      console.error('Error al guardar participante:', error);
+    }
+  };
+
+  const eliminarParticipante = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este participante?')) {
+      try {
+        await axios.delete(`${API_URL}/participantes/${id}`, headers);
+        obtenerParticipantes();
+      } catch (error) {
+        console.error('Error al eliminar participante:', error);
+      }
+    }
   };
 
   return (
     <>
       <Navbar />
-      <div className="container mt-5 pt-5" style={{ backgroundColor: '#FAF3ED', minHeight: '100vh' }}>
-        <div className="d-flex justify-content-between align-items-center py-4">
-          <h2 className="mb-0">Administrador de Participantes</h2>
-          <button
-            className="btn"
-            style={{ backgroundColor: '#4CAF50', color: 'white', borderRadius: '5px' }}
-            data-bs-toggle="modal"
-            data-bs-target="#agregarParticipanteModal"
-          >
-            + Agregar Participante
-          </button>
-        </div>
-
+      <div className="container mt-5 pt-5">
+        <h2>Gestión de Participantes</h2>
+        <Button className="mb-3" variant="success" onClick={() => abrirModal()}>
+          Agregar Participante
+        </Button>
         <div className="table-responsive">
-          <table className="table table-striped table-bordered">
-            <thead style={{ backgroundColor: '#F5E9DA' }}>
+          <table className="table table-bordered table-striped">
+            <thead>
               <tr>
                 <th>Nombre</th>
                 <th>Correo</th>
                 <th>Teléfono</th>
-                <th>Edad</th>
+                <th>Preferencia</th>
+                <th>Alojamiento</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {participantes.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="text-center">No hay participantes registrados.</td>
+              {participantes.map((p) => (
+                <tr key={p.id_participante}>
+                  <td>{p.nombre}</td>
+                  <td>{p.correo}</td>
+                  <td>{p.telefono}</td>
+                  <td>{p.nombre_preferencia}</td>
+                  <td>{p.nombre_alojamiento}</td>
+                  <td>
+                    <Button size="sm" variant="primary" onClick={() => abrirModal(p)}>Editar</Button>{' '}
+                    <Button size="sm" variant="danger" onClick={() => eliminarParticipante(p.id_participante)}>Eliminar</Button>
+                  </td>
                 </tr>
-              ) : (
-                participantes.map((p, index) => (
-                  <tr key={index}>
-                    <td>{p.nombre}</td>
-                    <td>{p.correo}</td>
-                    <td>{p.telefono}</td>
-                    <td>{p.edad}</td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Modal para Agregar Participante */}
-      <div className="modal fade" id="agregarParticipanteModal" tabIndex="-1" aria-labelledby="agregarParticipanteModalLabel" aria-hidden="true">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header" style={{ backgroundColor: '#F5E9DA' }}>
-              <h5 className="modal-title" id="agregarParticipanteModalLabel">Agregar Participante</h5>
-              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div className="modal-body">
-              <form>
-                <div className="mb-3">
-                  <label className="form-label">Nombre</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="nombre"
-                    value={nuevoParticipante.nombre}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Correo</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    name="correo"
-                    value={nuevoParticipante.correo}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Teléfono</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    name="telefono"
-                    value={nuevoParticipante.telefono}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Edad</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    name="edad"
-                    value={nuevoParticipante.edad}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="button" className="btn" style={{ backgroundColor: '#4CAF50', color: 'white' }} onClick={agregarParticipante}>
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Modal para agregar/editar */}
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>{editando ? 'Editar Participante' : 'Nuevo Participante'}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Nombre</Form.Label>
+                <Form.Control name="nombre" value={formulario.nombre} onChange={handleInputChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Correo</Form.Label>
+                <Form.Control name="correo" value={formulario.correo} onChange={handleInputChange} type="email" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Teléfono</Form.Label>
+                <Form.Control name="telefono" value={formulario.telefono} onChange={handleInputChange} required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Preferencia</Form.Label>
+                <Form.Select name="preferencia_id" value={formulario.preferencia_id} onChange={handleInputChange} required>
+                  <option value="">Seleccione una preferencia</option>
+                  {preferencias.map((p) => (
+                    <option key={p.id_preferencia} value={p.id_preferencia}>
+                      {p.nombre_preferencia}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Alojamiento</Form.Label>
+                <Form.Select name="alojamiento_id" value={formulario.alojamiento_id} onChange={handleInputChange} required>
+                  <option value="">Seleccione un alojamiento</option>
+                  {alojamientos.map((a) => (
+                    <option key={a.id_alojamiento} value={a.id_alojamiento}>
+                      {a.nombre_alojamiento}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={guardarParticipante}>
+              Guardar
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     </>
   );

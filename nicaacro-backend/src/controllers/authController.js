@@ -2,6 +2,8 @@ const sql = require("mssql");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/jwt");
 const { getConnection } = require("../config/db");
+const authService = require("../services/authService");
+
 
 //login a la app
 const login = async (req, res) => {

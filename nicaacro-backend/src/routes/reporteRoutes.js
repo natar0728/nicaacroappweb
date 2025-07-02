@@ -6,5 +6,6 @@ const authorizeRoles = require('../middlewares/checkRole');
 
 router.get('/asistencia', verifyToken, authorizeRoles('Administrador'), controller.asistencia);
 router.get('/resumen', verifyToken, authorizeRoles('Administrador'), controller.resumen);
+router.get('/reporte-participantes', verifyToken, authorizeRoles('Administrador', 'Organizador'), controller.getReporteParticipantes);
 
 module.exports = router;

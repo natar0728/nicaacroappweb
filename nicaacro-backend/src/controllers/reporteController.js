@@ -18,7 +18,17 @@ const resumen = async (req, res) => {
   }
 };
 
+const getReporteParticipantes = async (req, res) => {
+  try {
+    const data = await reporteService.obtenerReporteParticipantes();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ mensaje: error.message });
+  }
+};
+
 module.exports = {
   asistencia,
-  resumen
+  resumen,
+  getReporteParticipantes
 };
