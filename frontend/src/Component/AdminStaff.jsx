@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -16,6 +16,7 @@ const StaffAdmin = () => {
     telefono: '',
     rol_id: ''
   });
+  const [errorForm, setErrorForm] = useState('');
 
   const token = localStorage.getItem('token');
   const headers = { headers: { Authorization: `Bearer ${token}` } };
@@ -36,8 +37,9 @@ const StaffAdmin = () => {
 
   const obtenerRoles = async () => {
     try {
-      const res = await axios.get(`${API_URL}/catalogos/rol`, headers);
-      setRoles(res.data);
+      const res = await axios.get(`${API_URL}/catalogo/roles`, headers);
+      console.log('🔍 Datos recibidos de roles:', res.data);
+      setRoles(Array.isArray(res.data) ? res.data : res.data.recordset || []);
     } catch (error) {
       console.error('Error al obtener roles:', error);
     }
@@ -48,6 +50,7 @@ const StaffAdmin = () => {
   };
 
   const abrirModal = (staff = null) => {
+    setErrorForm('');
     setEditando(staff);
     if (staff) {
       setFormulario({
@@ -57,27 +60,38 @@ const StaffAdmin = () => {
         rol_id: staff.rol_id
       });
     } else {
-      setFormulario({
-        nombre: '',
-        correo: '',
-        telefono: '',
-        rol_id: ''
-      });
+      setFormulario({ nombre: '', correo: '', telefono: '', rol_id: '' });
     }
     setShowModal(true);
   };
 
+  const validarFormulario = () => {
+    if (!formulario.nombre || !formulario.correo || !formulario.telefono || !formulario.rol_id) {
+      setErrorForm('Todos los campos son obligatorios.');
+      return false;
+    }
+    const correoRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!correoRegex.test(formulario.correo)) {
+      setErrorForm('El correo electrónico no es válido.');
+      return false;
+    }
+    return true;
+  };
+
   const guardarStaff = async () => {
+    if (!validarFormulario()) return;
+
     try {
       if (editando) {
         await axios.put(`${API_URL}/staff/${editando.id_staff}`, formulario, headers);
       } else {
-        await axios.post(`${API_URL}/staff`, formulario, headers);
+        await axios.post(`${API_URL}/staff/crear`, formulario, headers);
       }
       setShowModal(false);
       obtenerStaff();
     } catch (error) {
       console.error('Error al guardar staff:', error);
+      setErrorForm('Error al guardar. Intenta nuevamente.');
     }
   };
 
@@ -134,6 +148,7 @@ const StaffAdmin = () => {
             <Modal.Title>{editando ? 'Editar Staff' : 'Nuevo Staff'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {errorForm && <Alert variant="danger">{errorForm}</Alert>}
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Nombre</Form.Label>
@@ -152,21 +167,15 @@ const StaffAdmin = () => {
                 <Form.Select name="rol_id" value={formulario.rol_id} onChange={handleInputChange} required>
                   <option value="">Seleccione un rol</option>
                   {roles.map((r) => (
-                    <option key={r.id_rol} value={r.id_rol}>
-                      {r.nombre_rol}
-                    </option>
+                    <option key={r.id_rol} value={r.id_rol}>{r.nombre_rol}</option>
                   ))}
                 </Form.Select>
               </Form.Group>
             </Form>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cancelar
-            </Button>
-            <Button variant="primary" onClick={guardarStaff}>
-              Guardar
-            </Button>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={guardarStaff}>Guardar</Button>
           </Modal.Footer>
         </Modal>
       </div>
@@ -175,4 +184,3 @@ const StaffAdmin = () => {
 };
 
 export default StaffAdmin;
-

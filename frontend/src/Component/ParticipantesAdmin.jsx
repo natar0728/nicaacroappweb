@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -11,6 +11,7 @@ const ParticipantesAdmin = () => {
   const [alojamientos, setAlojamientos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [errorForm, setErrorForm] = useState('');
   const [formulario, setFormulario] = useState({
     nombre: '',
     correo: '',
@@ -20,12 +21,7 @@ const ParticipantesAdmin = () => {
   });
 
   const token = localStorage.getItem('token');
-
-  const headers = {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  };
+  const headers = { headers: { Authorization: `Bearer ${token}` } };
 
   useEffect(() => {
     obtenerParticipantes();
@@ -34,7 +30,7 @@ const ParticipantesAdmin = () => {
 
   const obtenerParticipantes = async () => {
     try {
-      const response = await axios.get(`${API_URL}/participantes`, headers);
+      const response = await axios.get(`${API_URL}/reportes/reporte-participantes`, headers);
       setParticipantes(response.data);
     } catch (error) {
       console.error('Error al obtener participantes:', error);
@@ -45,7 +41,7 @@ const ParticipantesAdmin = () => {
     try {
       const [prefRes, alojRes] = await Promise.all([
         axios.get(`${API_URL}/catalogos/preferencia`, headers),
-        axios.get(`${API_URL}/catalogos/alojamiento`, headers)
+        axios.get(`${API_URL}/alojamientos/`, headers)
       ]);
       setPreferencias(prefRes.data);
       setAlojamientos(alojRes.data);
@@ -59,6 +55,7 @@ const ParticipantesAdmin = () => {
   };
 
   const abrirModal = (participante = null) => {
+    setErrorForm('');
     setEditando(participante);
     if (participante) {
       setFormulario({
@@ -80,7 +77,22 @@ const ParticipantesAdmin = () => {
     setShowModal(true);
   };
 
+  const validarFormulario = () => {
+    if (!formulario.nombre || !formulario.correo || !formulario.telefono || !formulario.preferencia_id || !formulario.alojamiento_id) {
+      setErrorForm('Todos los campos son obligatorios.');
+      return false;
+    }
+    const correoRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!correoRegex.test(formulario.correo)) {
+      setErrorForm('El correo electrónico no es válido.');
+      return false;
+    }
+    return true;
+  };
+
   const guardarParticipante = async () => {
+    if (!validarFormulario()) return;
+
     try {
       if (editando) {
         await axios.put(`${API_URL}/participantes/${editando.id_participante}`, formulario, headers);
@@ -91,6 +103,7 @@ const ParticipantesAdmin = () => {
       obtenerParticipantes();
     } catch (error) {
       console.error('Error al guardar participante:', error);
+      setErrorForm('Error al guardar. Intenta nuevamente.');
     }
   };
 
@@ -149,6 +162,7 @@ const ParticipantesAdmin = () => {
             <Modal.Title>{editando ? 'Editar Participante' : 'Nuevo Participante'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {errorForm && <Alert variant="danger">{errorForm}</Alert>}
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Nombre</Form.Label>
@@ -156,7 +170,7 @@ const ParticipantesAdmin = () => {
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Correo</Form.Label>
-                <Form.Control name="correo" value={formulario.correo} onChange={handleInputChange} type="email" required />
+                <Form.Control name="correo" type="email" value={formulario.correo} onChange={handleInputChange} required />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Teléfono</Form.Label>
@@ -167,9 +181,7 @@ const ParticipantesAdmin = () => {
                 <Form.Select name="preferencia_id" value={formulario.preferencia_id} onChange={handleInputChange} required>
                   <option value="">Seleccione una preferencia</option>
                   {preferencias.map((p) => (
-                    <option key={p.id_preferencia} value={p.id_preferencia}>
-                      {p.nombre_preferencia}
-                    </option>
+                    <option key={p.id_preferencia} value={p.id_preferencia}>{p.nombre_preferencia}</option>
                   ))}
                 </Form.Select>
               </Form.Group>
@@ -178,21 +190,15 @@ const ParticipantesAdmin = () => {
                 <Form.Select name="alojamiento_id" value={formulario.alojamiento_id} onChange={handleInputChange} required>
                   <option value="">Seleccione un alojamiento</option>
                   {alojamientos.map((a) => (
-                    <option key={a.id_alojamiento} value={a.id_alojamiento}>
-                      {a.nombre_alojamiento}
-                    </option>
+                    <option key={a.id_alojamiento} value={a.id_alojamiento}>{a.nombre_alojamiento}</option>
                   ))}
                 </Form.Select>
               </Form.Group>
             </Form>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cancelar
-            </Button>
-            <Button variant="primary" onClick={guardarParticipante}>
-              Guardar
-            </Button>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={guardarParticipante}>Guardar</Button>
           </Modal.Footer>
         </Modal>
       </div>

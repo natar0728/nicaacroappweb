@@ -1,143 +1,107 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
-import { Bar, Pie, HorizontalBar } from 'react-chartjs-2';
-import { Chart, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Row, Col, Card } from 'react-bootstrap';
-
-Chart.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
+import {
+  PieChart, Pie, Cell, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer
+} from 'recharts';
 
 const API_URL = process.env.REACT_APP_API_URL;
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50', '#a4de6c', '#d0ed57', '#8dd1e1'];
 
-const colores = ['#66c2a5', '#fc8d62', '#e78ac3', '#a6d854', '#e5c494', '#b3b3b3'];
-
-const ReportesGenerales = () => {
-  const [participantes, setParticipantes] = useState([]);
-  const [asistencia, setAsistencia] = useState([]);
-  const [entradas, setEntradas] = useState([]);
+const ReporteParticipantes = () => {
+  const [reporte, setReporte] = useState([]);
+  const [preferencias, setPreferencias] = useState([]);
   const [alojamientos, setAlojamientos] = useState([]);
-  const [voluntarios, setVoluntarios] = useState([]);
 
   const token = localStorage.getItem('token');
   const headers = { headers: { Authorization: `Bearer ${token}` } };
 
   useEffect(() => {
-    obtenerDatos();
+    obtenerReporte();
   }, []);
 
-  const obtenerDatos = async () => {
+  const obtenerReporte = async () => {
     try {
-      const [resPart, resAsis, resEnt, resAlo, resVol] = await Promise.all([
-        axios.get(`${API_URL}/reportes/participantes`, headers),
-        axios.get(`${API_URL}/reportes/asistencia`, headers),
-        axios.get(`${API_URL}/entradas`, headers),
-        axios.get(`${API_URL}/alojamiento`, headers),
-        axios.get(`${API_URL}/voluntarios`, headers)
-      ]);
-      setParticipantes(resPart.data);
-      setAsistencia(resAsis.data);
-      setEntradas(resEnt.data);
-      setAlojamientos(resAlo.data);
-      setVoluntarios(resVol.data);
-    } catch (err) {
-      console.error('Error al cargar reportes:', err);
+      const response = await axios.get(`${API_URL}/reportes/reporte-participantes`, headers);
+      setReporte(response.data);
+      procesarDatos(response.data);
+    } catch (error) {
+      console.error('Error al obtener el reporte:', error);
     }
   };
 
-  const contarCheckins = () => asistencia.filter(a => a.hora_checkin).length;
-  const contarCheckouts = () => asistencia.filter(a => a.hora_checkout).length;
+  const procesarDatos = (data) => {
+    const conteoPreferencias = {};
+    const conteoAlojamientos = {};
 
-  const contarPorCampo = (array, campo) => {
-    const conteo = {};
-    array.forEach((item) => {
-      const clave = item[campo];
-      conteo[clave] = (conteo[clave] || 0) + 1;
+    data.forEach(item => {
+      const pref = item.preferencia_dietetica || 'Sin preferencia';
+      const alo = item.alojamiento || 'Sin alojamiento';
+
+      conteoPreferencias[pref] = (conteoPreferencias[pref] || 0) + 1;
+      conteoAlojamientos[alo] = (conteoAlojamientos[alo] || 0) + 1;
     });
-    return conteo;
-  };
 
-  const prepararDatosChart = (conteo) => {
-    const labels = Object.keys(conteo);
-    const data = Object.values(conteo);
-    return {
-      labels,
-      datasets: [{
-        label: 'Cantidad',
-        data,
-        backgroundColor: colores.slice(0, labels.length)
-      }]
-    };
-  };
+    const preferenciasProcesadas = Object.entries(conteoPreferencias).map(([key, value]) => ({
+      name: key,
+      value,
+    }));
 
-  const voluntariosPorOcupacion = () => {
-    const conteo = {};
-    voluntarios.forEach(v => {
-      const ocupaciones = v.ocupaciones?.split(', ') || [];
-      ocupaciones.forEach(o => {
-        conteo[o] = (conteo[o] || 0) + 1;
-      });
-    });
-    return conteo;
+    const alojamientosProcesados = Object.entries(conteoAlojamientos).map(([key, value]) => ({
+      name: key,
+      cantidad: value,
+    }));
+
+    setPreferencias(preferenciasProcesadas);
+    setAlojamientos(alojamientosProcesados);
   };
 
   return (
     <>
       <Navbar />
       <div className="container mt-5 pt-4">
-        <h2 className="mb-4">📊 Reportes Generales</h2>
+        <h2 className="mb-4 text-center">Reporte Gráfico de Participantes</h2>
 
-        {/* Tarjetas Resumen */}
-        <Row className="mb-4">
-          <Col md={4}>
-            <Card className="text-white bg-success mb-3 shadow">
-              <Card.Body>
-                <Card.Title>Total Participantes</Card.Title>
-                <Card.Text style={{ fontSize: '2rem' }}>{participantes.length}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card className="text-white bg-info mb-3 shadow">
-              <Card.Body>
-                <Card.Title>Total Check-ins</Card.Title>
-                <Card.Text style={{ fontSize: '2rem' }}>{contarCheckins()}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={4}>
-            <Card className="text-white bg-warning mb-3 shadow">
-              <Card.Body>
-                <Card.Title>Total Check-outs</Card.Title>
-                <Card.Text style={{ fontSize: '2rem' }}>{contarCheckouts()}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+        <div className="mb-5">
+          <h4 className="text-center">Distribución de Preferencias Dietéticas</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={preferencias}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                {preferencias.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
-        {/* Gráficos */}
-        <Row>
-          <Col md={6} className="mb-4">
-            <h5>Entradas por tipo</h5>
-            <Bar data={prepararDatosChart(contarPorCampo(entradas, 'tipo'))} />
-          </Col>
-          <Col md={6} className="mb-4">
-            <h5>Alojamiento por lugar</h5>
-            <Pie data={prepararDatosChart(contarPorCampo(alojamientos, 'nombre_lugar'))} />
-          </Col>
-        </Row>
-
-        <Row>
-          <Col md={12}>
-            <h5>Voluntarios por Ocupación</h5>
-            <Bar
-              data={prepararDatosChart(voluntariosPorOcupacion())}
-              options={{ indexAxis: 'y' }}
-            />
-          </Col>
-        </Row>
+        <div>
+          <h4 className="text-center">Participantes por Alojamiento</h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={alojamientos}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="cantidad" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </>
   );
 };
 
-export default ReportesGenerales;
+export default ReporteParticipantes;

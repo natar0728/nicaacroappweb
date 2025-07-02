@@ -8,8 +8,6 @@ import {
   FaClipboardList,
   FaChartBar,
   FaSignOutAlt,
-  FaUserPlus,
-  FaIdBadge
 } from 'react-icons/fa';
 
 const Navbar = () => {
@@ -19,28 +17,53 @@ const Navbar = () => {
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     setUserRole(null);
-    navigate('/login');
+    navigate('/');
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark" style={{ backgroundColor: '#4E342E', position: 'fixed', width: '100%', top: 0, zIndex: 999 }}>
+    <nav
+      className="navbar navbar-expand-lg navbar-dark"
+      style={{
+        backgroundColor: '#4E342E',
+        position: 'fixed',
+        width: '100%',
+        top: 0,
+        zIndex: 999,
+      }}
+    >
       <div className="container-fluid">
-        <Link className="navbar-brand" to="/home">NicaAcro</Link>
+        <Link className="navbar-brand" to="/home">
+          NicaAcro
+        </Link>
 
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown">
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNavDropdown"
+        >
           <span className="navbar-toggler-icon"></span>
         </button>
 
         <div className="collapse navbar-collapse" id="navbarNavDropdown">
           <ul className="navbar-nav ms-auto">
 
-            {/* GESTIÓN: disponible para Admin y Organizador */}
+            {/* GESTIÓN */}
             {(userRole === 'Administrador' || userRole === 'Organizador') && (
               <li className="nav-item dropdown">
-                <a className="nav-link dropdown-toggle" href="#" id="gestionDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button
+                  className="nav-link dropdown-toggle btn btn-link"
+                  id="gestionDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style={{ color: 'white', textDecoration: 'none' }}
+                >
                   <FaUsers className="me-1" /> Gestión
-                </a>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="gestionDropdown">
+                </button>
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="gestionDropdown"
+                >
                   <li><Link className="dropdown-item" to="/staff">Staff</Link></li>
                   <li><Link className="dropdown-item" to="/voluntarios">Voluntarios</Link></li>
                   <li><Link className="dropdown-item" to="/participants">Participantes</Link></li>
@@ -48,39 +71,66 @@ const Navbar = () => {
               </li>
             )}
 
-            {/* OPERACIONES: todos los roles */}
+            {/* OPERACIONES */}
             <li className="nav-item dropdown">
-              <a className="nav-link dropdown-toggle" href="#" id="operacionesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <button
+                className="nav-link dropdown-toggle btn btn-link"
+                id="operacionesDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style={{ color: 'white', textDecoration: 'none' }}
+              >
                 <FaUserCheck className="me-1" /> Operaciones
-              </a>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="operacionesDropdown">
+              </button>
+              <ul
+                className="dropdown-menu dropdown-menu-end"
+                aria-labelledby="operacionesDropdown"
+              >
                 <li><Link className="dropdown-item" to="/checkin">Check-in/Check-out</Link></li>
                 <li><Link className="dropdown-item" to="/entries">Entradas y Alojamiento</Link></li>
               </ul>
             </li>
 
-            {/* ADMINISTRACIÓN: solo para Administrador */}
+            {/* ADMINISTRACIÓN */}
             {userRole === 'Administrador' && (
               <li className="nav-item dropdown">
-                <a className="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button
+                  className="nav-link dropdown-toggle btn btn-link"
+                  id="adminDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style={{ color: 'white', textDecoration: 'none' }}
+                >
                   <FaUserCog className="me-1" /> Administración
-                </a>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
-                  <li><Link className="dropdown-item" to="/staff-management">Administrar Staff</Link></li>
-                  <li><Link className="dropdown-item" to="/participant-management">Administrar Participantes</Link></li>
+                </button>
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="adminDropdown"
+                >
+                  <li><Link className="dropdown-item" to="/staff-management">Administrador de personal</Link></li>
+                  <li><Link className="dropdown-item" to="/participant-management">Administrador de participantes</Link></li>
                   <li><Link className="dropdown-item" to="/register-user">Registrar Usuario</Link></li>
                   <li><Link className="dropdown-item" to="/perfil">Editar Perfil</Link></li>
                 </ul>
               </li>
             )}
 
-            {/* REPORTES: solo Administrador */}
+            {/* REPORTES */}
             {userRole === 'Administrador' && (
               <li className="nav-item dropdown">
-                <a className="nav-link dropdown-toggle" href="#" id="reportesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <FaChartBar className="me-1" /> Reportes
-                </a>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="reportesDropdown">
+                <button
+                  className="nav-link dropdown-toggle btn btn-link"
+                  id="reportesDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style={{ color: 'white', textDecoration: 'none' }}
+                >
+                  <FaChartBar className="me-1" /> Informes
+                </button>
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="reportesDropdown"
+                >
                   <li><Link className="dropdown-item" to="/reports">Ver Informes</Link></li>
                   <li><Link className="dropdown-item" to="/user-list">Gestión de Usuarios</Link></li>
                 </ul>
@@ -95,6 +145,7 @@ const Navbar = () => {
                 </button>
               </li>
             )}
+
           </ul>
         </div>
       </div>
@@ -103,4 +154,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

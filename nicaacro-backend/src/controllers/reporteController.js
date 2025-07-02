@@ -20,10 +20,13 @@ const resumen = async (req, res) => {
 
 const getReporteParticipantes = async (req, res) => {
   try {
-    const data = await reporteService.obtenerReporteParticipantes();
-    res.status(200).json(data);
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request().execute('sp_Participante_ReporteGeneral');
+
+    res.status(200).json(result.recordset);
   } catch (error) {
-    res.status(500).json({ mensaje: error.message });
+    console.error('Error al obtener el reporte general de participantes:', error);
+    res.status(500).json({ message: 'Error al obtener el reporte' });
   }
 };
 
